@@ -1,0 +1,19 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: key-value-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: key-value-app
+  template:
+    metadata:
+      labels:
+        app: key-value-app
+    spec:
+      containers:
+        - name: key-value-app
+          image: "registry.digitalocean.com/wdc-registry/key-value-app:latest"
+          ports:
+            - containerPort: 8080
