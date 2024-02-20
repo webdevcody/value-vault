@@ -1,3 +1,4 @@
 tmp/
 data/*
 rabbitmq.out
+loadtest/node_modules/

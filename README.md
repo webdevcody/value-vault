@@ -39,3 +39,12 @@ helm install my-rabbitmq bitnami/rabbitmq
 
 1. username: user
 1. password: `$(kubectl get secret --namespace default my-rabbitmq -o jsonpath="{.data.rabbitmq-password}" | base64 -d)`
+
+## Loadtests
+
+1. install k6
+2. k6 run loadtest.js
+
+## Build Container
+
+`eval $(minikube docker-env) && docker build --platform=linux/amd64 -t registry.digitalocean.com/wdc-registry/key-value-app:latest . && kubectl delete deployment key-value-app && kubectl apply -f k8s`
