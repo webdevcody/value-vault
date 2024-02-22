@@ -1,13 +1,8 @@
 import http from "k6/http";
-import { check, sleep } from "k6";
+import { check } from "k6";
 
-// Test configuration
 export const options = {
-  vus: 200,
-  duration: "10s",
-  // stages: [
-  //   { target: 300, duration: '30s' },
-  // ],
+  stages: [{ target: 1000, duration: "10s" }],
 };
 
 function randomString(length) {
@@ -21,11 +16,10 @@ function randomString(length) {
   return result;
 }
 
-// Simulated user behavior
-export default function () {
+function writeKey() {
   const key = randomString(6);
-  let res = http.post(
-    `http://localhost/keys/${key}`,
+  const res = http.post(
+    `http://localhost:8080/keys/${key}`,
     JSON.stringify({
       json: {
         key: "test",
@@ -35,16 +29,17 @@ export default function () {
   );
   // Validate response status
   check(res, { "status was 200": (r) => r.status == 201 });
-  // sleep(1);
-  // res = http.get(
-  //   `http://localhost/keys/${key}`,
-  //   JSON.stringify({
-  //     json: {
-  //       key: "test",
-  //       value: "test",
-  //     },
-  //   })
-  // );
-  // // Validate response status
-  // check(res, { "status was 200": (r) => r.status == 200 });
+}
+
+function readValue() {
+  const key = randomString(6);
+  const res = http.get(`http://localhost:7777/keys/${key}`);
+  check(res, { "status was 200": (r) => r.status == 200 });
+}
+
+// Simulated user behavior
+export default function () {
+  // writeKey();
+  readValue();
+  // getTest();
 }
