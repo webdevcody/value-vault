@@ -39,7 +39,7 @@ function readValue() {
 
 // Simulated user behavior
 export default function () {
-  // writeKey();
-  readValue();
+  writeKey();
+  // readValue();
   // getTest();
 }

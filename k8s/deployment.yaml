@@ -1,12 +1,13 @@
-kind: Deployment
+kind: StatefulSet
 apiVersion: apps/v1
 metadata:
-  name: key-value-app
+  name: key-value-app-set
 spec:
-  replicas: 4
   selector:
     matchLabels:
       app: key-value-app
+  serviceName: "key-value-app"
+  replicas: 4
   template:
     metadata:
       labels:
@@ -32,18 +33,12 @@ spec:
                   name: my-rabbitmq
                   key: rabbitmq-password
 
-      volumes:
-        - name: data
-          persistentVolumeClaim:
-            claimName: key-value-app-pvc
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: key-value-app-pvc
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi

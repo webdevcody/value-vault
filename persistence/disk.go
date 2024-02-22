@@ -13,7 +13,6 @@ func WriteJsonToDisk(key string, jsonData []byte) error {
 		return fmt.Errorf("error writing JSON data to file: %v", err)
 	}
 
-	fmt.Printf("JSON data written to file %s\n", filePath)
 	return nil
 }
 
