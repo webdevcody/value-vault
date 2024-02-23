@@ -9,6 +9,7 @@ import (
 	"key-value-app/proxy"
 	"net/http"
 	"os"
+	"strings"
 )
 
 func handleEvent(eventName string) {
@@ -21,13 +22,22 @@ func main() {
 
 	mux := http.NewServeMux()
 
+	mux.HandleFunc("GET /status", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
 	mux.HandleFunc("GET /keys/{key}", func(w http.ResponseWriter, r *http.Request) {
+		hostname := os.Getenv("HOSTNAME")
+
 		key := r.PathValue("key")
-		// fmt.Printf("GET /keys/%s\n", key)
+
+		fmt.Printf("Hostname=%s GET /keys/%s\n", hostname, key)
 
 		node := hash.GetNode(key)
 
-		if node.Hostname == os.Getenv("HOSTNAME") {
+		nodeHostname := strings.Split(node.Hostname, ".")[0]
+
+		if nodeHostname == hostname {
 
 			var cacheValue []byte
 
@@ -67,6 +77,7 @@ func main() {
 			w.Write(cacheValue)
 
 		} else {
+			fmt.Println("Forwarding get to", node.Hostname)
 			response, err := proxy.ForwardGetToNode(node.Hostname, key)
 			if err != nil {
 				fmt.Println(err)
@@ -80,9 +91,11 @@ func main() {
 	})
 
 	mux.HandleFunc("POST /keys/{key}", func(w http.ResponseWriter, r *http.Request) {
+		hostname := os.Getenv("HOSTNAME")
+
 		key := r.PathValue("key")
 
-		// fmt.Printf("POST /keys/%s\n", key)
+		fmt.Printf("Hostname=%s POST /keys/%s\n", hostname, key)
 
 		var jsonData any
 		err := json.NewDecoder(r.Body).Decode(&jsonData)
@@ -96,8 +109,10 @@ func main() {
 		// find the node for the key
 		node := hash.GetNode(key)
 
+		nodeHostname := strings.Split(node.Hostname, ".")[0]
+
 		// print node hostname and HOSTNAME env
-		if node.Hostname == os.Getenv("HOSTNAME") {
+		if nodeHostname == hostname {
 
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -114,6 +129,7 @@ func main() {
 			w.WriteHeader(http.StatusCreated)
 
 		} else {
+			fmt.Println("Forwarding store to", node.Hostname)
 			err := proxy.ForwardStoreToNode(node.Hostname, key, jsonDataBytes)
 			if err != nil {
 				// print error
@@ -133,6 +149,10 @@ func main() {
 	// }()
 
 	port := os.Getenv("PORT")
+
+	if port == "" {
+		port = "8080"
+	}
 
 	fmt.Println("Starting server on port %s", port)
 

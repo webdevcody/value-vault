@@ -1,8 +1,10 @@
 package hash
 
 import (
+	"os"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/spaolacci/murmur3"
 )
@@ -100,9 +102,11 @@ func (ch *ConsistentHash) firstKey() uint32 {
 func GetNode(key string) Node {
 	if consistentHash == nil {
 		consistentHash = NewConsistentHash()
-		consistentHash.AddNode("localhost:8080")
-		consistentHash.AddNode("localhost:8081")
-		consistentHash.AddNode("localhost:8082")
+		nodes := os.Getenv("NODES")
+		nodesArray := strings.Split(nodes, ";")
+		for _, node := range nodesArray {
+			consistentHash.AddNode(node)
+		}
 	}
 
 	return consistentHash.GetNode(key)
