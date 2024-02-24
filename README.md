@@ -20,7 +20,9 @@
 
 ## Local Development
 
-1. RABBIT_MQ_PASSWORD="BV5QxJAfupW1TZjy" RABBIT_MQ_HOST="localhost" FILE_PATH_PREFIX=./data air
+<!-- 1. RABBIT_MQ_PASSWORD="BV5QxJAfupW1TZjy" RABBIT_MQ_HOST="localhost" FILE_PATH_PREFIX=./data air -->
+
+1. FILE_PATH_PREFIX=./data NODES=1 PREVIOUS_NODES=1 HOSTNAME=localhost:8080 PORT=8080 IS_LOCAL=true air
 2. POST@http://localhost:8080/keys/hello
 3. GET@http://localhost:8080/keys/hello
 
@@ -48,3 +50,11 @@ helm install my-rabbitmq bitnami/rabbitmq
 ## Build Container
 
 `eval $(minikube docker-env) && docker build --platform=linux/amd64 -t registry.digitalocean.com/wdc-registry/key-value-app:latest . && kubectl delete deployment key-value-app && kubectl apply -f k8s`
+
+## Deployment Process
+
+1. increase replicas and apply
+2. increase nodes and apply
+3. do a get request on all keys after new version of pods all up
+4. increase previous_nodes and apply
+5. done

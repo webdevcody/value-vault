@@ -16,6 +16,28 @@ func WriteJsonToDisk(key string, jsonData []byte) error {
 	return nil
 }
 
+func DeleteKey(key string) error {
+	filePath := getFilePathUsingKey(key)
+
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return nil
+	}
+
+	if err := os.Remove(filePath); err != nil {
+		return fmt.Errorf("error deleting key: %v", err)
+	}
+
+	return nil
+}
+
+func IsKeyOnDisk(key string) bool {
+	filePath := getFilePathUsingKey(key)
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
 func ReadValueFromDisk(key string) ([]byte, error) {
 	filePath := getFilePathUsingKey(key)
 

@@ -1,8 +1,9 @@
 import http from "k6/http";
-import { check } from "k6";
+import { check, sleep } from "k6";
 
+let written = 0;
 export const options = {
-  stages: [{ target: 1000, duration: "10s" }],
+  stages: [{ target: 2, duration: "60s" }],
 };
 
 function randomString(length) {
@@ -16,30 +17,37 @@ function randomString(length) {
   return result;
 }
 
-function writeKey() {
-  const key = randomString(6);
+const nodes = ["8080", "8081"];
+
+function getRandomNode() {
+  return nodes[Math.floor(Math.random() * nodes.length)];
+}
+
+function writeKey(key, value) {
   const res = http.post(
-    `http://localhost:8080/keys/${key}`,
-    JSON.stringify({
-      json: {
-        key: "test",
-        value: "test",
-      },
-    })
+    `http://localhost:${getRandomNode()}/keys/${key}`,
+    JSON.stringify(value)
   );
+  written++;
   // Validate response status
   check(res, { "status was 200": (r) => r.status == 201 });
 }
 
-function readValue() {
-  const key = randomString(6);
-  const res = http.get(`http://localhost:7777/keys/${key}`);
-  check(res, { "status was 200": (r) => r.status == 200 });
+function readValue(key, expectedValue) {
+  const res = http.get(`http://localhost:${getRandomNode()}/keys/${key}`);
+  check(res, {
+    "Response body contains expected string": (res) => {
+      return res.body.includes(expectedValue);
+    },
+  });
 }
 
 // Simulated user behavior
 export default function () {
-  writeKey();
-  // readValue();
-  // getTest();
+  const randomValue = randomString(32);
+  const key = randomString(6);
+  writeKey(key, randomValue);
+  sleep(1);
+  readValue(key, randomValue);
+  console.log("written", written);
 }

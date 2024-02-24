@@ -1,16 +1,18 @@
 package hash
 
 import (
+	"fmt"
+	"key-value-app/config"
 	"os"
 	"sort"
 	"strconv"
-	"strings"
 
 	"github.com/spaolacci/murmur3"
 )
 
 var weight = 10
-var consistentHash *ConsistentHash
+var currentRingHash *ConsistentHash
+var previousRingHash *ConsistentHash
 
 type HashRing []uint32
 
@@ -99,15 +101,34 @@ func (ch *ConsistentHash) firstKey() uint32 {
 	return 0
 }
 
-func GetNode(key string) Node {
-	if consistentHash == nil {
-		consistentHash = NewConsistentHash()
-		nodes := os.Getenv("NODES")
-		nodesArray := strings.Split(nodes, ";")
-		for _, node := range nodesArray {
-			consistentHash.AddNode(node)
+func Reset() {
+	currentRingHash = nil
+	previousRingHash = nil
+}
+
+func getNodeFromRing(key string, ring **ConsistentHash, totalNodes int) Node {
+	if *ring == nil {
+		*ring = NewConsistentHash()
+		isLocal := os.Getenv("IS_LOCAL") == "true"
+		for id := range totalNodes {
+			fmt.Printf("Adding node %d\n", id)
+			if isLocal {
+				(*ring).AddNode(fmt.Sprintf("localhost:%d", 8080+id))
+			} else {
+				(*ring).AddNode(fmt.Sprintf("api-%d.api.default.svc.cluster.local:8080", id))
+			}
 		}
 	}
 
-	return consistentHash.GetNode(key)
+	return (*ring).GetNode(key)
+}
+
+func GetCurrentRingNode(key string) Node {
+	configuration := config.GetConfiguration()
+	return getNodeFromRing(key, &currentRingHash, configuration.CurrentNodeCount)
+}
+
+func GetPreviousRingNode(key string) Node {
+	configuration := config.GetConfiguration()
+	return getNodeFromRing(key, &previousRingHash, configuration.PreviousNodeCount)
 }
