@@ -6,7 +6,12 @@ import (
 	"io"
 	"key-value-app/config"
 	"net/http"
+	"time"
 )
+
+var client = http.Client{
+	Timeout: time.Second * 3,
+}
 
 func setConfigurationOnHeaders(req *http.Request) {
 	req.Header.Set("X-Configuration-Version", fmt.Sprintf("%d", config.GetConfiguration().Version))
@@ -28,7 +33,6 @@ func ForwardStoreToNode(hostname string, key string, value []byte, traceId strin
 	setTraceId(req, traceId)
 	setConfigurationOnHeaders(req)
 
-	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -53,7 +57,6 @@ func ForwardGetToNode(hostname string, key string, force bool, traceId string) (
 	setConfigurationOnHeaders(req)
 	setTraceId(req, traceId)
 
-	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -75,7 +78,6 @@ func DeleteKeyFromNode(hostname string, key string, traceId string) ([]byte, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	setTraceId(req, traceId)
-	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err

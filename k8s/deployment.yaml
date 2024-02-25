@@ -11,6 +11,56 @@ spec:
       targetPort: 8080
 
 ---
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: api
+# spec:
+#   replicas: 3
+#   strategy:
+#     type: RollingUpdate
+#     rollingUpdate:
+#       maxUnavailable: 0
+#   selector:
+#     matchLabels:
+#       app: api
+#   template:
+#     metadata:
+#       labels:
+#         app: api
+#     spec:
+#       containers:
+#         - name: api
+#           image: "registry.digitalocean.com/wdc-registry/key-value-app:latest"
+#           imagePullPolicy: IfNotPresent
+#           ports:
+#             - containerPort: 8080
+#           readinessProbe:
+#             httpGet:
+#               path: /status
+#               port: 8080
+#             initialDelaySeconds: 5
+#             periodSeconds: 5
+#             timeoutSeconds: 5
+#             successThreshold: 1
+#             failureThreshold: 3
+#           livenessProbe:
+#             exec:
+#               command:
+#                 - cat
+#                 - /tmp/live
+#           env:
+#             - name: CONFIG_VERSION
+#               value: "3"
+#             - name: NODES
+#               value: "3"
+#             - name: PREVIOUS_NODES
+#               value: "2"
+#             - name: TESTING
+#               value: "GsGgggJJ"
+#             - name: FILE_PATH_PREFIX
+#               value: "/data"
+
 kind: StatefulSet
 apiVersion: apps/v1
 metadata:
@@ -21,9 +71,6 @@ spec:
       app: api
   serviceName: "api"
   replicas: 3
-  updateStrategy:
-    rollingUpdate:
-      maxUnavailable: 1
   template:
     metadata:
       labels:
@@ -42,20 +89,20 @@ spec:
             httpGet:
               path: /status
               port: 8080
-            initialDelaySeconds: 2
-            periodSeconds: 3
-            timeoutSeconds: 5
+            initialDelaySeconds: 1
+            periodSeconds: 1
+            timeoutSeconds: 2
             successThreshold: 1
             failureThreshold: 3
           env:
             - name: CONFIG_VERSION
-              value: "3"
+              value: "1"
             - name: NODES
               value: "3"
             - name: PREVIOUS_NODES
               value: "2"
             - name: TESTING
-              value: "GG!!"
+              value: "GGB!!B"
             - name: FILE_PATH_PREFIX
               value: "/data"
             - name: RABBIT_MQ_HOST

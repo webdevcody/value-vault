@@ -33,6 +33,7 @@ function writeKey(key, value, traceId) {
       headers: {
         "X-Trace-Id": traceId,
       },
+      timeout: "60s",
     }
   );
   // Validate response status
@@ -44,6 +45,7 @@ function readValue(key, expectedValue, traceId) {
     headers: {
       "X-Trace-Id": traceId,
     },
+    timeout: "60s",
   });
   // const res = http.get(`http://localhost:${getRandomNode()}/keys/${key}`);
   check(res, {
@@ -66,15 +68,15 @@ function getStatus(key, expectedValue, traceId) {
   check(res, { "status was 200": (r) => r.status == 200 });
 }
 
-// export default function () {
-//   const randomValue = randomString(32);
-//   const randomTrace = randomString(32);
-//   const key = randomString(6);
-//   writeKey(key, randomValue, randomTrace);
-//   sleep(1);
-//   readValue(key, randomValue, randomTrace);
-// }
-
 export default function () {
-  getStatus();
+  const randomValue = randomString(32);
+  const randomTrace = randomString(32);
+  const key = randomString(6);
+  writeKey(key, randomValue, randomTrace);
+  sleep(1);
+  readValue(key, randomValue, randomTrace);
 }
+
+// export default function () {
+//   getStatus();
+// }

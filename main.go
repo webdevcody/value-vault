@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"key-value-app/handlers"
 	"log"
@@ -14,7 +13,6 @@ import (
 )
 
 func main() {
-	// messaging.Initialize()
 
 	mux := http.NewServeMux()
 
@@ -34,25 +32,41 @@ func main() {
 		Handler: mux,
 	}
 
-	fmt.Printf("Starting server on port %s\n", port)
-
+	idleConnsClosed := make(chan struct{})
 	go func() {
-		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("HTTP server error: %v", err)
+		sigint := make(chan os.Signal, 1)
+
+		// interrupt signal sent from terminal
+		signal.Notify(sigint, os.Interrupt)
+		// sigterm signal sent from kubernetes
+		signal.Notify(sigint, syscall.SIGTERM)
+
+		<-sigint
+
+		// sleep
+		time.Sleep(10 * time.Second)
+
+		// We received an interrupt signal, shut down.
+		if err := server.Shutdown(context.Background()); err != nil {
+			// Error from closing listeners, or context timeout:
+			log.Printf("HTTP server Shutdown: %v", err)
 		}
-		log.Println("Stopped serving new connections.")
+		close(idleConnsClosed)
 	}()
 
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	<-sigChan
+	// probe.Create()
 
-	shutdownCtx, shutdownRelease := context.WithTimeout(context.Background(), 10*time.Second)
-	defer shutdownRelease()
-
-	if err := server.Shutdown(shutdownCtx); err != nil {
-		log.Fatalf("HTTP shutdown error: %v", err)
+	if err := server.ListenAndServe(); err != http.ErrServerClosed {
+		// Error starting or closing listener:
+		log.Printf("HTTP server ListenAndServe: %v", err)
+		// messaging.Initialize()
 	}
-	log.Println("Graceful shutdown complete.")
 
+	log.Printf("waiting for connections to close\n")
+
+	<-idleConnsClosed
+
+	// log.Printf("removing file\n")
+
+	// probe.Remove()
 }
