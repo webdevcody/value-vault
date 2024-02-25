@@ -20,7 +20,10 @@ spec:
     matchLabels:
       app: api
   serviceName: "api"
-  replicas: 4
+  replicas: 3
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 1
   template:
     metadata:
       labels:
@@ -35,11 +38,24 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data
+          readinessProbe:
+            httpGet:
+              path: /status
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 3
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
           env:
+            - name: CONFIG_VERSION
+              value: "3"
             - name: NODES
-              value: "4"
+              value: "3"
             - name: PREVIOUS_NODES
-              value: "4"
+              value: "2"
+            - name: TESTING
+              value: "GG!!"
             - name: FILE_PATH_PREFIX
               value: "/data"
             - name: RABBIT_MQ_HOST
@@ -59,7 +75,6 @@ spec:
         resources:
           requests:
             storage: 1Gi
-
 ---
 apiVersion: v1
 kind: Service

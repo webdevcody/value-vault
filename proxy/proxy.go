@@ -14,25 +14,30 @@ func setConfigurationOnHeaders(req *http.Request) {
 	req.Header.Set("X-Configuration-Previous-Nodes", fmt.Sprintf("%d", config.GetConfiguration().PreviousNodeCount))
 }
 
-func ForwardStoreToNode(hostname string, key string, value []byte) error {
+func setTraceId(req *http.Request, traceId string) {
+	req.Header.Set("X-Trace-Id", traceId)
+}
+
+func ForwardStoreToNode(hostname string, key string, value []byte, traceId string) ([]byte, error) {
 	url := fmt.Sprintf("http://%s/keys/%s", hostname, key)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(value))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	setTraceId(req, traceId)
 	setConfigurationOnHeaders(req)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
-	return nil
+	return []byte(""), nil
 }
 
-func ForwardGetToNode(hostname string, key string, force bool) ([]byte, error) {
+func ForwardGetToNode(hostname string, key string, force bool, traceId string) ([]byte, error) {
 	suffix := ""
 	if force {
 		suffix = "?force=true"
@@ -46,6 +51,7 @@ func ForwardGetToNode(hostname string, key string, force bool) ([]byte, error) {
 
 	req.Header.Set("Content-Type", "application/json")
 	setConfigurationOnHeaders(req)
+	setTraceId(req, traceId)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -60,7 +66,7 @@ func ForwardGetToNode(hostname string, key string, force bool) ([]byte, error) {
 	return body, nil
 }
 
-func DeleteKeyFromNode(hostname string, key string) ([]byte, error) {
+func DeleteKeyFromNode(hostname string, key string, traceId string) ([]byte, error) {
 	url := fmt.Sprintf("http://%s/keys/%s", hostname, key)
 
 	req, err := http.NewRequest("DELETE", url, nil)
@@ -68,6 +74,7 @@ func DeleteKeyFromNode(hostname string, key string) ([]byte, error) {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	setTraceId(req, traceId)
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {

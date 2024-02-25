@@ -22,7 +22,7 @@
 
 <!-- 1. RABBIT_MQ_PASSWORD="BV5QxJAfupW1TZjy" RABBIT_MQ_HOST="localhost" FILE_PATH_PREFIX=./data air -->
 
-1. FILE_PATH_PREFIX=./data NODES=1 PREVIOUS_NODES=1 HOSTNAME=localhost:8080 PORT=8080 IS_LOCAL=true air
+1. CONFIG_VERSION=1 FILE_PATH_PREFIX=./data/1 NODES=2 PREVIOUS_NODES=2 HOSTNAME=localhost:8080 PORT=8080 IS_LOCAL=true air
 2. POST@http://localhost:8080/keys/hello
 3. GET@http://localhost:8080/keys/hello
 
@@ -49,7 +49,7 @@ helm install my-rabbitmq bitnami/rabbitmq
 
 ## Build Container
 
-`eval $(minikube docker-env) && docker build --platform=linux/amd64 -t registry.digitalocean.com/wdc-registry/key-value-app:latest . && kubectl delete deployment key-value-app && kubectl apply -f k8s`
+`eval $(minikube docker-env) && docker build --platform=linux/amd64 -t registry.digitalocean.com/wdc-registry/key-value-app:latest . && kubectl delete statefulset api && kubectl apply -f k8s`
 
 ## Deployment Process
 

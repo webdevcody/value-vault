@@ -6,12 +6,15 @@ import (
 	"key-value-app/hash"
 	"key-value-app/persistence"
 	"key-value-app/proxy"
+	"key-value-app/util"
 	"net/http"
 	"os"
 	"strings"
 )
 
 func GetKeys(w http.ResponseWriter, r *http.Request) {
+	context := GetRequestContext(r)
+
 	hostname := os.Getenv("HOSTNAME")
 
 	key := r.PathValue("key")
@@ -22,27 +25,20 @@ func GetKeys(w http.ResponseWriter, r *http.Request) {
 		suffix = "?force=true"
 	}
 
-	fmt.Printf("\n\nHostname=%s GET /keys/%s%s\n", hostname, key, suffix)
+	Log(context, fmt.Sprintf("GET /keys/%s%s", key, suffix))
 
 	requestConfiguration := GetConfigurationFromHeaders(r)
 	currentConfiguration := config.GetConfiguration()
-	if requestConfiguration != nil {
-		fmt.Printf("incoming version %d\n", requestConfiguration.Version)
-	}
 	if requestConfiguration != nil && requestConfiguration.Version > currentConfiguration.Version {
 		config.SetConfiguration(requestConfiguration)
 		hash.Reset()
 	}
 
 	node := hash.GetCurrentRingNode(key)
-	previousNode := hash.GetPreviousRingNode(key)
+	// previousNode := hash.GetPreviousRingNode(key)
 
 	currentNodeHostname := strings.Split(node.Hostname, ".")[0]
-	previousNodeHostname := strings.Split(previousNode.Hostname, ".")[0]
-
-	fmt.Printf("Current Hostname: %s\n", hostname)
-	fmt.Printf("Old Target Hostname: %s\n", previousNodeHostname)
-	fmt.Printf("New Target Hostname: %s\n", currentNodeHostname)
+	// previousNodeHostname := strings.Split(previousNode.Hostname, ".")[0]
 
 	if currentNodeHostname == hostname || force == "true" {
 
@@ -63,8 +59,11 @@ func GetKeys(w http.ResponseWriter, r *http.Request) {
 			w.Write(jsonData)
 		} else {
 			oldNode := hash.GetPreviousRingNode(key)
-			fmt.Println("FORCE GET TO", oldNode.Hostname)
-			response, err := proxy.ForwardGetToNode(oldNode.Hostname, key, true)
+
+			response, err := util.CallWithRetries(10, func() ([]byte, error) {
+				return proxy.ForwardGetToNode(oldNode.Hostname, key, true, context.traceId)
+			})
+
 			if err != nil {
 				fmt.Println(err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -75,7 +74,10 @@ func GetKeys(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			_, deleteErr := proxy.DeleteKeyFromNode(oldNode.Hostname, key)
+			_, deleteErr := util.CallWithRetries(10, func() ([]byte, error) {
+				return proxy.DeleteKeyFromNode(oldNode.Hostname, key, context.traceId)
+			})
+
 			if deleteErr != nil {
 				http.Error(w, deleteErr.Error(), http.StatusInternalServerError)
 				return
@@ -87,8 +89,10 @@ func GetKeys(w http.ResponseWriter, r *http.Request) {
 		}
 
 	} else {
-		fmt.Println("Forwarding get to", node.Hostname)
-		response, err := proxy.ForwardGetToNode(node.Hostname, key, false)
+		response, err := util.CallWithRetries(10, func() ([]byte, error) {
+			return proxy.ForwardGetToNode(node.Hostname, key, false, context.traceId)
+		})
+
 		if err != nil {
 			fmt.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)

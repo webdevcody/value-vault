@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"sync"
 )
 
 type Configuration struct {
@@ -14,17 +15,25 @@ type Configuration struct {
 }
 
 var configuration *Configuration
+var mutex sync.Mutex
 
 func getIntFromEnv(envString string) int {
-	nodes := os.Getenv(envString)
-	nodesInt, err := strconv.Atoi(nodes)
+	stringValue := os.Getenv(envString)
+	value, err := strconv.Atoi(stringValue)
 	if err != nil {
 		log.Fatal(err)
 	}
-	return nodesInt
+	return value
 }
 
-func GetConfiguration() *Configuration {
+func GetConfiguration() Configuration {
+	if configuration != nil {
+		return *configuration
+	}
+
+	mutex.Lock()
+	defer mutex.Unlock()
+
 	if configuration == nil {
 		configuration = &Configuration{
 			CurrentNodeCount:  getIntFromEnv("NODES"),
@@ -32,11 +41,13 @@ func GetConfiguration() *Configuration {
 			Version:           getIntFromEnv("CONFIG_VERSION"),
 		}
 	}
-	return configuration
+	return *configuration
 }
 
 // this will be called if a header comes in with data containing a new configuration version
 func SetConfiguration(config *Configuration) {
+	mutex.Lock()
+	defer mutex.Unlock()
 	configuration.CurrentNodeCount = config.CurrentNodeCount
 	configuration.PreviousNodeCount = config.PreviousNodeCount
 	configuration.Version = config.Version

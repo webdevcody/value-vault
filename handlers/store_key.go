@@ -8,17 +8,19 @@ import (
 	"key-value-app/hash"
 	"key-value-app/persistence"
 	"key-value-app/proxy"
+	"key-value-app/util"
 	"net/http"
 	"os"
 	"strings"
 )
 
 func StoreKey(w http.ResponseWriter, r *http.Request) {
+	context := GetRequestContext(r)
 	hostname := os.Getenv("HOSTNAME")
 
 	key := r.PathValue("key")
 
-	fmt.Printf("Hostname=%s POST /keys/%s\n", hostname, key)
+	Log(context, fmt.Sprintf("POST /keys/%s", key))
 
 	var jsonData any
 	err := json.NewDecoder(r.Body).Decode(&jsonData)
@@ -31,9 +33,6 @@ func StoreKey(w http.ResponseWriter, r *http.Request) {
 
 	requestConfiguration := GetConfigurationFromHeaders(r)
 	currentConfiguration := config.GetConfiguration()
-	if requestConfiguration != nil {
-		fmt.Printf("incoming version %d\n", requestConfiguration.Version)
-	}
 	if requestConfiguration != nil && requestConfiguration.Version > currentConfiguration.Version {
 		fmt.Printf("new version found\n")
 
@@ -45,8 +44,6 @@ func StoreKey(w http.ResponseWriter, r *http.Request) {
 	node := hash.GetCurrentRingNode(key)
 	oldNode := hash.GetPreviousRingNode(key)
 	nodeHostname := strings.Split(node.Hostname, ".")[0]
-
-	fmt.Printf("new node %s\n", node.Hostname)
 
 	// print node hostname and HOSTNAME env
 	if nodeHostname == hostname {
@@ -67,7 +64,11 @@ func StoreKey(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !isOnDisk && oldNode.Hostname != node.Hostname {
-			_, err := proxy.DeleteKeyFromNode(oldNode.Hostname, key)
+
+			_, err := util.CallWithRetries(10, func() ([]byte, error) {
+				return proxy.DeleteKeyFromNode(oldNode.Hostname, key, context.traceId)
+			})
+
 			if err != nil {
 				fmt.Println(err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -77,10 +78,11 @@ func StoreKey(w http.ResponseWriter, r *http.Request) {
 
 		w.WriteHeader(http.StatusCreated)
 	} else {
-		fmt.Println("Forwarding store to", node.Hostname)
-		err := proxy.ForwardStoreToNode(node.Hostname, key, jsonDataBytes)
+		_, err := util.CallWithRetries(10, func() ([]byte, error) {
+			return proxy.ForwardStoreToNode(node.Hostname, key, jsonDataBytes, context.traceId)
+		})
+
 		if err != nil {
-			// print error
 			fmt.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

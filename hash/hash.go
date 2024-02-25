@@ -6,6 +6,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"sync"
 
 	"github.com/spaolacci/murmur3"
 )
@@ -13,6 +14,8 @@ import (
 var weight = 10
 var currentRingHash *ConsistentHash
 var previousRingHash *ConsistentHash
+var currentRingMutex sync.Mutex
+var previousRingMutex sync.Mutex
 
 type HashRing []uint32
 
@@ -68,7 +71,7 @@ func (ch *ConsistentHash) GetNode(key string) Node {
 			return ch.Nodes[k]
 		}
 	}
-	node := ch.Nodes[ch.firstKey()]
+	node := ch.Nodes[ch.SortedKeys[0]]
 	return node
 }
 
@@ -94,14 +97,11 @@ func (ch *ConsistentHash) sortNodes() {
 	ch.IsSorted = true
 }
 
-func (ch *ConsistentHash) firstKey() uint32 {
-	for k := range ch.Nodes {
-		return k
-	}
-	return 0
-}
-
 func Reset() {
+	currentRingMutex.Lock()
+	defer currentRingMutex.Unlock()
+	previousRingMutex.Lock()
+	defer previousRingMutex.Unlock()
 	currentRingHash = nil
 	previousRingHash = nil
 }
@@ -110,8 +110,8 @@ func getNodeFromRing(key string, ring **ConsistentHash, totalNodes int) Node {
 	if *ring == nil {
 		*ring = NewConsistentHash()
 		isLocal := os.Getenv("IS_LOCAL") == "true"
+
 		for id := range totalNodes {
-			fmt.Printf("Adding node %d\n", id)
 			if isLocal {
 				(*ring).AddNode(fmt.Sprintf("localhost:%d", 8080+id))
 			} else {
@@ -125,10 +125,14 @@ func getNodeFromRing(key string, ring **ConsistentHash, totalNodes int) Node {
 
 func GetCurrentRingNode(key string) Node {
 	configuration := config.GetConfiguration()
+	currentRingMutex.Lock()
+	defer currentRingMutex.Unlock()
 	return getNodeFromRing(key, &currentRingHash, configuration.CurrentNodeCount)
 }
 
 func GetPreviousRingNode(key string) Node {
 	configuration := config.GetConfiguration()
+	previousRingMutex.Lock()
+	defer previousRingMutex.Unlock()
 	return getNodeFromRing(key, &previousRingHash, configuration.PreviousNodeCount)
 }
