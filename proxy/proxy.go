@@ -10,7 +10,7 @@ import (
 )
 
 var client = http.Client{
-	Timeout: time.Second * 3,
+	Timeout: time.Second * 5,
 }
 
 func setConfigurationOnHeaders(req *http.Request) {
