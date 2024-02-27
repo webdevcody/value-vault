@@ -6,6 +6,7 @@ import (
 	"key-value-app/cache"
 	"key-value-app/config"
 	"key-value-app/hash"
+	"key-value-app/messaging"
 	"key-value-app/persistence"
 	"key-value-app/proxy"
 	"key-value-app/util"
@@ -43,7 +44,7 @@ func StoreKey(w http.ResponseWriter, r *http.Request) {
 	// find the node for the key
 	node := hash.GetCurrentRingNode(key)
 	oldNode := hash.GetPreviousRingNode(key)
-	nodeHostname := strings.Split(node.Hostname, ".")[0]
+	nodeHostname := strings.Split(node.LogicalHostname, ".")[0]
 
 	// print node hostname and HOSTNAME env
 	if nodeHostname == hostname {
@@ -63,10 +64,10 @@ func StoreKey(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if !isOnDisk && oldNode.Hostname != node.Hostname {
+		if !isOnDisk && oldNode.LogicalHostname != node.LogicalHostname {
 
 			_, err := util.CallWithRetries(10, func() ([]byte, error) {
-				return proxy.DeleteKeyFromNode(oldNode.Hostname, key, context.traceId)
+				return proxy.DeleteKeyFromNode(oldNode.PhysicalHostname, key, context.traceId)
 			})
 
 			if err != nil {
@@ -77,9 +78,11 @@ func StoreKey(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.WriteHeader(http.StatusCreated)
+
+		messaging.PublishEvent(key, string(jsonDataBytes))
 	} else {
 		_, err := util.CallWithRetries(10, func() ([]byte, error) {
-			return proxy.ForwardStoreToNode(node.Hostname, key, jsonDataBytes, context.traceId)
+			return proxy.ForwardStoreToNode(node.PhysicalHostname, key, jsonDataBytes, context.traceId)
 		})
 
 		if err != nil {

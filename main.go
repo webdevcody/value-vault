@@ -4,15 +4,36 @@ import (
 	"context"
 	"fmt"
 	"key-value-app/handlers"
+	"key-value-app/messaging"
+	"key-value-app/persistence"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 )
 
+func handleEvent(message string) {
+	parts := strings.Split(message, "|YOLO|")
+	hostname := parts[0]
+	key := parts[1]
+	body := parts[2]
+
+	log.Printf("%s wrote value for key %s\n", hostname, key)
+
+	if os.Getenv("HOSTNAME") != hostname {
+		if err := persistence.WriteJsonToDisk(key, []byte(body)); err != nil {
+			log.Fatal("could not write to file", err)
+			return
+		}
+	}
+}
+
 func main() {
+
+	messaging.Initialize()
 
 	mux := http.NewServeMux()
 
@@ -54,12 +75,17 @@ func main() {
 		close(idleConnsClosed)
 	}()
 
+	go func() {
+		fmt.Println("Starting RabbitMQ listener")
+		messaging.InitializeEventListener(handleEvent)
+	}()
+
 	// probe.Create()
+	messaging.Initialize()
 
 	if err := server.ListenAndServe(); err != http.ErrServerClosed {
 		// Error starting or closing listener:
 		log.Printf("HTTP server ListenAndServe: %v", err)
-		// messaging.Initialize()
 	}
 
 	log.Printf("waiting for connections to close\n")

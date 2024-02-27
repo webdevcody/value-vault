@@ -3,6 +3,7 @@ package messaging
 import (
 	"log"
 	"os"
+	"strings"
 
 	"github.com/streadway/amqp"
 )
@@ -15,8 +16,6 @@ var (
 	queueErr    error
 )
 
-var topicName = "events"
-
 func getRabbitMqUrl() string {
 	var rabbitMqHost = os.Getenv("RABBIT_MQ_HOST")
 	var rabbitMqPass = os.Getenv("RABBIT_MQ_PASSWORD")
@@ -28,7 +27,25 @@ func getRabbitMqUrl() string {
 	return "amqp://user:" + rabbitMqPass + "@" + rabbitMqHost + ":5672/"
 }
 
+func Shutdown() {
+	err := rabbitConn.Close()
+	if err != nil {
+		log.Fatalf("Failed to close rabbitmq connection: %v", err)
+	}
+	err = rabbitCh.Close()
+	if err != nil {
+		log.Fatalf("Failed to close rabbitmq channel: %v", err)
+	}
+}
+
+func getTopicName() string {
+	hostname := os.Getenv("HOSTNAME")
+	return strings.ReplaceAll(strings.ReplaceAll(hostname, "-primary", ""), "-secondary", "")
+}
+
 func Initialize() {
+	hostname := os.Getenv("HOSTNAME")
+
 	if rabbitConn != nil {
 		return
 	}
@@ -45,25 +62,25 @@ func Initialize() {
 
 	// Declare the topic exchange if it's not already declared
 	err := rabbitCh.ExchangeDeclare(
-		topicName, // exchange name
-		"topic",   // exchange type
-		true,      // durable
-		false,     // auto-deleted
-		false,     // internal
-		false,     // no-wait
-		nil,       // arguments
+		getTopicName(), // both primary and secondary need to share the same exchange
+		"topic",        // exchange type
+		true,           // durable
+		false,          // auto-deleted
+		false,          // internal
+		false,          // no-wait
+		nil,            // arguments
 	)
 	if err != nil {
 		log.Fatalf("Failed to declare an exchange: %v", err)
 	}
 
 	rabbitQueue, queueErr = rabbitCh.QueueDeclare(
-		"",    // queue name (empty to let RabbitMQ generate a unique name)
-		false, // durable
-		true,  // delete when unused
-		false, // exclusive
-		false, // no-wait
-		nil,   // arguments
+		hostname, // queue name (empty to let RabbitMQ generate a unique name)
+		false,    // durable
+		false,    // delete when unused
+		false,    // exclusive
+		false,    // no-wait
+		nil,      // arguments
 	)
 	if queueErr != nil {
 		log.Fatalf("Failed to declare a queue: %v", err)
@@ -73,7 +90,7 @@ func Initialize() {
 	err = rabbitCh.QueueBind(
 		rabbitQueue.Name, // queue name
 		"#",              // routing key (listen to all topics)
-		"events",         // exchange name
+		getTopicName(),   // exchange name
 		false,            // no-wait
 		nil,              // arguments
 	)

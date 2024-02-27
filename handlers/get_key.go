@@ -37,7 +37,7 @@ func GetKeys(w http.ResponseWriter, r *http.Request) {
 	node := hash.GetCurrentRingNode(key)
 	// previousNode := hash.GetPreviousRingNode(key)
 
-	currentNodeHostname := strings.Split(node.Hostname, ".")[0]
+	currentNodeHostname := strings.Split(node.LogicalHostname, ".")[0]
 	// previousNodeHostname := strings.Split(previousNode.Hostname, ".")[0]
 
 	if currentNodeHostname == hostname || force == "true" {
@@ -61,7 +61,7 @@ func GetKeys(w http.ResponseWriter, r *http.Request) {
 			oldNode := hash.GetPreviousRingNode(key)
 
 			response, err := util.CallWithRetries(10, func() ([]byte, error) {
-				return proxy.ForwardGetToNode(oldNode.Hostname, key, true, context.traceId)
+				return proxy.ForwardGetToNode(oldNode.PhysicalHostname, key, true, context.traceId)
 			})
 
 			if err != nil {
@@ -75,7 +75,7 @@ func GetKeys(w http.ResponseWriter, r *http.Request) {
 			}
 
 			_, deleteErr := util.CallWithRetries(10, func() ([]byte, error) {
-				return proxy.DeleteKeyFromNode(oldNode.Hostname, key, context.traceId)
+				return proxy.DeleteKeyFromNode(oldNode.PhysicalHostname, key, context.traceId)
 			})
 
 			if deleteErr != nil {
@@ -90,7 +90,7 @@ func GetKeys(w http.ResponseWriter, r *http.Request) {
 
 	} else {
 		response, err := util.CallWithRetries(10, func() ([]byte, error) {
-			return proxy.ForwardGetToNode(node.Hostname, key, false, context.traceId)
+			return proxy.ForwardGetToNode(node.PhysicalHostname, key, false, context.traceId)
 		})
 
 		if err != nil {

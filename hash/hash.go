@@ -20,8 +20,9 @@ var previousRingMutex sync.Mutex
 type HashRing []uint32
 
 type Node struct {
-	Id       int
-	Hostname string
+	Id               int
+	LogicalHostname  string
+	PhysicalHostname string // this is a hack because I can't think of a better way to get this working locally
 }
 
 type ConsistentHash struct {
@@ -38,13 +39,14 @@ func NewConsistentHash() *ConsistentHash {
 	}
 }
 
-func (ch *ConsistentHash) AddNode(hostname string) {
+func (ch *ConsistentHash) AddNode(logicalHostname string, physicalHostname string) {
 	node := Node{
-		Hostname: hostname,
+		LogicalHostname:  logicalHostname,
+		PhysicalHostname: physicalHostname,
 	}
 
 	for i := 0; i < weight; i++ {
-		hash := ch.hashKey(hostname + strconv.Itoa(i))
+		hash := ch.hashKey(physicalHostname + strconv.Itoa(i))
 		ch.Nodes[hash] = node
 	}
 
@@ -110,12 +112,17 @@ func getNodeFromRing(key string, ring **ConsistentHash, totalNodes int) Node {
 	if *ring == nil {
 		*ring = NewConsistentHash()
 		isLocal := os.Getenv("IS_LOCAL") == "true"
+		mode := os.Getenv("MODE")
 
 		for id := range totalNodes {
 			if isLocal {
-				(*ring).AddNode(fmt.Sprintf("localhost:%d", 8080+id))
+				logicalHostname := os.Getenv("HOSTNAME")
+				physicalHostname := os.Getenv("LOCAL_HOSTNAME")
+				(*ring).AddNode(logicalHostname, physicalHostname)
 			} else {
-				(*ring).AddNode(fmt.Sprintf("api-%d.api.default.svc.cluster.local:8080", id))
+				logicalHostname := fmt.Sprintf("api-%s-%d.api-%s.default.svc.cluster.local:8080", mode, id, mode)
+				physicalHostname := logicalHostname
+				(*ring).AddNode(logicalHostname, physicalHostname)
 			}
 		}
 	}

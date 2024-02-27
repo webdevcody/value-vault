@@ -58,3 +58,7 @@ helm install my-rabbitmq bitnami/rabbitmq
 3. do a get request on all keys after new version of pods all up
 4. increase previous_nodes and apply
 5. done
+
+## Stuff
+
+CONFIG_VERSION=1 FILE_PATH_PREFIX=./data/1 NODES=1 PREVIOUS_NODES=1 HOSTNAME=api-primary-0 LOCAL_HOSTNAME=localhost:8080 PORT=8080 IS_LOCAL=true RABBIT_MQ_HOST=localhost RABBIT_MQ_PASSWORD=nuq8W2xD7Xm3lawk MODE=primary air

@@ -2,7 +2,15 @@ import http from "k6/http";
 import { check, sleep } from "k6";
 
 export const options = {
-  stages: [{ target: 50, duration: "60s" }],
+  stages: [
+    { target: 200, duration: "20s" },
+    { target: 200, duration: "20s" },
+  ],
+  noConnectionReuse: true,
+  dns: {
+    ttl: "0",
+    select: "random",
+  },
 };
 
 const BASE_URL = "http://localhost";
@@ -18,12 +26,6 @@ function randomString(length) {
   return result;
 }
 
-const nodes = ["8080", "8081"];
-
-function getRandomNode() {
-  return nodes[Math.floor(Math.random() * nodes.length)];
-}
-
 function writeKey(key, value, traceId) {
   const res = http.post(
     // `http://localhost:${getRandomNode()}/keys/${key}`,
@@ -33,7 +35,6 @@ function writeKey(key, value, traceId) {
       headers: {
         "X-Trace-Id": traceId,
       },
-      timeout: "60s",
     }
   );
   // Validate response status
@@ -45,7 +46,6 @@ function readValue(key, expectedValue, traceId) {
     headers: {
       "X-Trace-Id": traceId,
     },
-    timeout: "60s",
   });
   // const res = http.get(`http://localhost:${getRandomNode()}/keys/${key}`);
   check(res, {
@@ -73,7 +73,7 @@ export default function () {
   const randomTrace = randomString(32);
   const key = randomString(6);
   writeKey(key, randomValue, randomTrace);
-  sleep(1);
+  sleep(5);
   readValue(key, randomValue, randomTrace);
 }
 
