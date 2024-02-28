@@ -3,8 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"key-value-app/cache"
-	"key-value-app/config"
 	"key-value-app/hash"
 	"key-value-app/messaging"
 	"key-value-app/persistence"
@@ -15,9 +13,40 @@ import (
 	"strings"
 )
 
-func StoreKey(w http.ResponseWriter, r *http.Request) {
-	context := GetRequestContext(r)
+func StoreKeyValue(key string, value []byte, traceId string) error {
 	hostname := os.Getenv("HOSTNAME")
+
+	if traceId == "" {
+		traceId = GenerateRandomString()
+	}
+
+	node := hash.GetCurrentRingNode(key)
+	nodeHostname := strings.Split(node.LogicalHostname, ".")[0]
+
+	isDataOnThisNode := nodeHostname == hostname
+
+	if !isDataOnThisNode {
+		_, err := util.CallWithRetries(10, func() ([]byte, error) {
+			return proxy.ForwardStoreToNode(node.PhysicalHostname, key, value, traceId)
+		})
+
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+	}
+
+	if err := persistence.WriteJsonToDisk(key, value); err != nil {
+		return err
+	}
+
+	messaging.PublishEvent(key, string(value))
+
+	return nil
+}
+
+func StoreKeyHandler(w http.ResponseWriter, r *http.Request) {
+	context := GetRequestContext(r)
 
 	key := r.PathValue("key")
 
@@ -32,66 +61,17 @@ func StoreKey(w http.ResponseWriter, r *http.Request) {
 
 	jsonDataBytes, err := json.Marshal(jsonData)
 
-	requestConfiguration := GetConfigurationFromHeaders(r)
-	currentConfiguration := config.GetConfiguration()
-	if requestConfiguration != nil && requestConfiguration.Version > currentConfiguration.Version {
-		fmt.Printf("new version found\n")
-
-		config.SetConfiguration(requestConfiguration)
-		hash.Reset()
+	if err != nil {
+		http.Error(w, "could not marshal json", http.StatusInternalServerError)
+		return
 	}
 
-	// find the node for the key
-	node := hash.GetCurrentRingNode(key)
-	oldNode := hash.GetPreviousRingNode(key)
-	nodeHostname := strings.Split(node.LogicalHostname, ".")[0]
+	err = StoreKeyValue(key, jsonDataBytes, context.traceId)
 
-	// print node hostname and HOSTNAME env
-	if nodeHostname == hostname {
-
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		cache.StoreIntoCache(key, jsonDataBytes)
-
-		// if the key doesn't exist here, we will need to delete from old node
-		isOnDisk := persistence.IsKeyOnDisk(key)
-
-		if err := persistence.WriteJsonToDisk(key, jsonDataBytes); err != nil {
-			http.Error(w, "could not write to file", http.StatusInternalServerError)
-			return
-		}
-
-		if !isOnDisk && oldNode.LogicalHostname != node.LogicalHostname {
-
-			_, err := util.CallWithRetries(10, func() ([]byte, error) {
-				return proxy.DeleteKeyFromNode(oldNode.PhysicalHostname, key, context.traceId)
-			})
-
-			if err != nil {
-				fmt.Println(err)
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		}
-
-		w.WriteHeader(http.StatusCreated)
-
-		messaging.PublishEvent(key, string(jsonDataBytes))
-	} else {
-		_, err := util.CallWithRetries(10, func() ([]byte, error) {
-			return proxy.ForwardStoreToNode(node.PhysicalHostname, key, jsonDataBytes, context.traceId)
-		})
-
-		if err != nil {
-			fmt.Println(err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.WriteHeader(http.StatusCreated)
+	if err != nil {
+		http.Error(w, "could not store key value", http.StatusInternalServerError)
+		return
 	}
 
-	// messaging.PublishEvent(key)
+	w.WriteHeader(http.StatusCreated)
 }

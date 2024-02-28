@@ -2,12 +2,15 @@ package persistence
 
 import (
 	"fmt"
-	"log"
 	"os"
 )
 
+var directoryPath string
+
 func WriteJsonToDisk(key string, jsonData []byte) error {
 	filePath := getFilePathUsingKey(key)
+
+	fmt.Printf("%s\n", directoryPath)
 
 	if err := os.WriteFile(filePath, jsonData, 0644); err != nil {
 		return fmt.Errorf("error writing JSON data to file: %v", err)
@@ -54,9 +57,25 @@ func ReadValueFromDisk(key string) ([]byte, error) {
 }
 
 func getFilePathUsingKey(key string) string {
-	filePathPrefix := os.Getenv("FILE_PATH_PREFIX")
-	if filePathPrefix == "" {
-		log.Fatal("FILE_PATH_PREFIX environment variable is not set")
+	return directoryPath + "/" + key + ".json"
+}
+
+func Initialize() error {
+	// Check if the directory already exists
+	directoryPath = fmt.Sprintf("%s/%s", os.Getenv("FILE_PATH_PREFIX"), os.Getenv("HOSTNAME"))
+	fmt.Printf("%s\n", directoryPath)
+	_, err := os.Stat(directoryPath)
+	if os.IsNotExist(err) {
+		// Directory doesn't exist, create it
+		err := os.MkdirAll(directoryPath, 0755) // 0755 is the default permissions
+		if err != nil {
+			return err
+		}
+	} else if err != nil {
+		// Error occurred while checking directory existence
+		return err
 	}
-	return filePathPrefix + "/" + key + ".json"
+
+	// Directory already exists or created successfully
+	return nil
 }

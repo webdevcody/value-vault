@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"fmt"
-	"key-value-app/config"
 	"key-value-app/hash"
 	"key-value-app/persistence"
 	"key-value-app/proxy"
@@ -18,21 +17,10 @@ func GetKeys(w http.ResponseWriter, r *http.Request) {
 	hostname := os.Getenv("HOSTNAME")
 
 	key := r.PathValue("key")
-	force := r.URL.Query().Get("force")
 
-	suffix := ""
-	if force == "true" {
-		suffix = "?force=true"
-	}
+	Log(context, fmt.Sprintf("GET /keys/%s", key))
 
-	Log(context, fmt.Sprintf("GET /keys/%s%s", key, suffix))
-
-	requestConfiguration := GetConfigurationFromHeaders(r)
-	currentConfiguration := config.GetConfiguration()
-	if requestConfiguration != nil && requestConfiguration.Version > currentConfiguration.Version {
-		config.SetConfiguration(requestConfiguration)
-		hash.Reset()
-	}
+	// currentConfiguration := config.GetConfiguration()
 
 	node := hash.GetCurrentRingNode(key)
 	// previousNode := hash.GetPreviousRingNode(key)
@@ -40,57 +28,31 @@ func GetKeys(w http.ResponseWriter, r *http.Request) {
 	currentNodeHostname := strings.Split(node.LogicalHostname, ".")[0]
 	// previousNodeHostname := strings.Split(previousNode.Hostname, ".")[0]
 
-	if currentNodeHostname == hostname || force == "true" {
+	if currentNodeHostname == hostname {
 
 		onDisk := persistence.IsKeyOnDisk(key)
 
-		if onDisk || force == "true" {
+		if onDisk {
 			jsonData, err := persistence.ReadValueFromDisk(key)
+
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			if jsonData == nil {
-				jsonData = []byte("null")
-			}
 
 			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("X-Stored-On", hostname)
 			w.WriteHeader(http.StatusOK)
 			w.Write(jsonData)
 		} else {
-			oldNode := hash.GetPreviousRingNode(key)
-
-			response, err := util.CallWithRetries(10, func() ([]byte, error) {
-				return proxy.ForwardGetToNode(oldNode.PhysicalHostname, key, true, context.traceId)
-			})
-
-			if err != nil {
-				fmt.Println(err)
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			if err := persistence.WriteJsonToDisk(key, response); err != nil {
-				http.Error(w, "could not write to file", http.StatusInternalServerError)
-				return
-			}
-
-			_, deleteErr := util.CallWithRetries(10, func() ([]byte, error) {
-				return proxy.DeleteKeyFromNode(oldNode.PhysicalHostname, key, context.traceId)
-			})
-
-			if deleteErr != nil {
-				http.Error(w, deleteErr.Error(), http.StatusInternalServerError)
-				return
-			}
-
 			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("X-Stored-On", hostname)
 			w.WriteHeader(http.StatusOK)
-			w.Write(response)
+			w.Write([]byte("null"))
 		}
-
 	} else {
 		response, err := util.CallWithRetries(10, func() ([]byte, error) {
-			return proxy.ForwardGetToNode(node.PhysicalHostname, key, false, context.traceId)
+			return proxy.ForwardGetToNode(node.PhysicalHostname, key, context.traceId)
 		})
 
 		if err != nil {
@@ -98,7 +60,10 @@ func GetKeys(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		shortHostname := strings.Split(node.PhysicalHostname, ".")[0]
 		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-Stored-On", shortHostname)
 		w.WriteHeader(http.StatusOK)
 		w.Write(response)
 	}

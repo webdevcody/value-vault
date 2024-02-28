@@ -6,6 +6,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/spaolacci/murmur3"
@@ -40,6 +41,7 @@ func NewConsistentHash() *ConsistentHash {
 }
 
 func (ch *ConsistentHash) AddNode(logicalHostname string, physicalHostname string) {
+	fmt.Printf("adding node %s %s\n", logicalHostname, physicalHostname)
 	node := Node{
 		LogicalHostname:  logicalHostname,
 		PhysicalHostname: physicalHostname,
@@ -116,9 +118,21 @@ func getNodeFromRing(key string, ring **ConsistentHash, totalNodes int) Node {
 
 		for id := range totalNodes {
 			if isLocal {
+				localPorts := os.Getenv("LOCAL_PORTS")
+				fmt.Printf("%s\n", localPorts)
+				parts := strings.Split(os.Getenv("LOCAL_PORTS"), ";")
 				logicalHostname := os.Getenv("HOSTNAME")
-				physicalHostname := os.Getenv("LOCAL_HOSTNAME")
-				(*ring).AddNode(logicalHostname, physicalHostname)
+				lastIndex := len(logicalHostname) - 1
+				strippedString := logicalHostname[:lastIndex]
+				logicalHostname = fmt.Sprintf("%s%d", strippedString, id)
+
+				port, _ := strconv.Atoi(parts[id])
+
+				fmt.Printf("PORT = %d\n", port)
+				fmt.Printf("ID = %d\n", id)
+				fmt.Printf("SPLIT LEN = %d\n", len(parts))
+
+				(*ring).AddNode(logicalHostname, fmt.Sprintf("localhost:%d", port))
 			} else {
 				logicalHostname := fmt.Sprintf("api-%s-%d.api-%s.default.svc.cluster.local:8080", mode, id, mode)
 				physicalHostname := logicalHostname

@@ -2,11 +2,9 @@ package handlers
 
 import (
 	"fmt"
-	"key-value-app/config"
 	"math/rand"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 )
 
@@ -19,7 +17,7 @@ func Log(context RequestContext, message string) {
 	fmt.Printf("Trace=%s Hostname=%s Log=%s\n", context.traceId, context.hostname, message)
 }
 
-func generateRandomString() string {
+func GenerateRandomString() string {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	const length = 32
 	seededRand := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -35,7 +33,7 @@ func getTraceId(r *http.Request) string {
 	traceId := r.Header.Get("X-Trace-Id")
 
 	if traceId == "" {
-		traceId = generateRandomString()
+		traceId = GenerateRandomString()
 	}
 
 	return traceId
@@ -45,22 +43,5 @@ func GetRequestContext(r *http.Request) RequestContext {
 	return RequestContext{
 		traceId:  getTraceId(r),
 		hostname: os.Getenv("HOSTNAME"),
-	}
-}
-
-func GetConfigurationFromHeaders(r *http.Request) *config.Configuration {
-	if r.Header.Get("X-Configuration-Version") == "" {
-		return nil
-	}
-
-	// TODO: error handle, for now assume headers will always be set
-
-	version, _ := strconv.Atoi(r.Header.Get("X-Configuration-Version"))
-	nodes, _ := strconv.Atoi(r.Header.Get("X-Configuration-Nodes"))
-	previousNodes, _ := strconv.Atoi(r.Header.Get("X-Configuration-Previous-Nodes"))
-	return &config.Configuration{
-		CurrentNodeCount:  nodes,
-		PreviousNodeCount: previousNodes,
-		Version:           version,
 	}
 }

@@ -20,7 +20,7 @@ spec:
     matchLabels:
       app: api-secondary
   serviceName: "api-secondary"
-  replicas: 1
+  replicas: 8
   template:
     metadata:
       labels:
@@ -29,7 +29,7 @@ spec:
     spec:
       containers:
         - name: api-secondary
-          image: "registry.digitalocean.com/wdc-registry/key-value-app:latest"
+          image: "registry.digitalocean.com/wdc-registry/key-value-app:6"
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
@@ -46,16 +46,10 @@ spec:
             successThreshold: 1
             failureThreshold: 3
           env:
-            - name: CONFIG_VERSION
-              value: "1"
             - name: NODES
-              value: "1"
-            - name: PREVIOUS_NODES
-              value: "1"
+              value: "8"
             - name: MODE
               value: secondary
-            - name: TESTING
-              value: "GGB!!B"
             - name: FILE_PATH_PREFIX
               value: "/data"
             - name: RABBIT_MQ_HOST

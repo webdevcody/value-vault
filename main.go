@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"key-value-app/handlers"
+	"key-value-app/hash"
 	"key-value-app/messaging"
 	"key-value-app/persistence"
 	"log"
@@ -17,28 +18,34 @@ import (
 
 func handleEvent(message string) {
 	parts := strings.Split(message, "|YOLO|")
-	hostname := parts[0]
-	key := parts[1]
-	body := parts[2]
+	key := parts[0]
+	value := parts[1]
 
-	log.Printf("%s wrote value for key %s\n", hostname, key)
+	hostname := os.Getenv("HOSTNAME")
+	node := hash.GetCurrentRingNode(key)
+	nodeHostname := strings.Split(node.LogicalHostname, ".")[0]
 
-	if os.Getenv("HOSTNAME") != hostname {
-		if err := persistence.WriteJsonToDisk(key, []byte(body)); err != nil {
-			log.Fatal("could not write to file", err)
-			return
-		}
+	isDataOnThisNode := nodeHostname == hostname
+
+	if !isDataOnThisNode {
+		return
 	}
+
+	if err := persistence.WriteJsonToDisk(key, []byte(value)); err != nil {
+		log.Fatalf("could not write to disk")
+	}
+
 }
 
 func main() {
+	persistence.Initialize()
 
 	messaging.Initialize()
 
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /keys/{key}", handlers.GetKeys)
-	mux.HandleFunc("POST /keys/{key}", handlers.StoreKey)
+	mux.HandleFunc("POST /keys/{key}", handlers.StoreKeyHandler)
 	mux.HandleFunc("DELETE /keys/{key}", handlers.DeleteKey)
 	mux.HandleFunc("GET /status", handlers.StatusHandler)
 

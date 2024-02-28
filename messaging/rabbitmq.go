@@ -62,13 +62,13 @@ func Initialize() {
 
 	// Declare the topic exchange if it's not already declared
 	err := rabbitCh.ExchangeDeclare(
-		getTopicName(), // both primary and secondary need to share the same exchange
-		"topic",        // exchange type
-		true,           // durable
-		false,          // auto-deleted
-		false,          // internal
-		false,          // no-wait
-		nil,            // arguments
+		"events", // both primary and secondary need to share the same exchange
+		"topic",  // exchange type
+		true,     // durable
+		false,    // auto-deleted
+		false,    // internal
+		false,    // no-wait
+		nil,      // arguments
 	)
 	if err != nil {
 		log.Fatalf("Failed to declare an exchange: %v", err)
@@ -77,7 +77,7 @@ func Initialize() {
 	rabbitQueue, queueErr = rabbitCh.QueueDeclare(
 		hostname, // queue name (empty to let RabbitMQ generate a unique name)
 		false,    // durable
-		false,    // delete when unused
+		true,     // delete when unused
 		false,    // exclusive
 		false,    // no-wait
 		nil,      // arguments
@@ -90,7 +90,7 @@ func Initialize() {
 	err = rabbitCh.QueueBind(
 		rabbitQueue.Name, // queue name
 		"#",              // routing key (listen to all topics)
-		getTopicName(),   // exchange name
+		"events",         // exchange name
 		false,            // no-wait
 		nil,              // arguments
 	)

@@ -1,3 +1,19 @@
+THIS PROJECT IS A MESS, DO NOT JUDGE ME
+
+I'M WORKING ON THIS TO FORCE MYSELF TO LEARN MORE ABOUT:
+
+- Go
+- K8s
+- Distributed Databases
+
+## Running Locally
+
+GOOD LUCK, TODO UPDATE ME
+
+`./start-node.sh 0 primary 1 8080 8080`
+
+^ the above command will start a primary node, assuming a cluster size of 1, with id of 0, on port 8080
+
 # Prereq
 
 - must have a DO cluster setup
@@ -22,7 +38,7 @@
 
 <!-- 1. RABBIT_MQ_PASSWORD="BV5QxJAfupW1TZjy" RABBIT_MQ_HOST="localhost" FILE_PATH_PREFIX=./data air -->
 
-1. CONFIG_VERSION=1 FILE_PATH_PREFIX=./data/1 NODES=2 PREVIOUS_NODES=2 HOSTNAME=localhost:8080 PORT=8080 IS_LOCAL=true air
+1. CONFIG_VERSION=1 FILE_PATH_PREFIX=./data/1 NODES=2 HOSTNAME=localhost:8080 PORT=8080 IS_LOCAL=true air
 2. POST@http://localhost:8080/keys/hello
 3. GET@http://localhost:8080/keys/hello
 
@@ -49,16 +65,15 @@ helm install my-rabbitmq bitnami/rabbitmq
 
 ## Build Container
 
-`eval $(minikube docker-env) && docker build --platform=linux/amd64 -t registry.digitalocean.com/wdc-registry/key-value-app:latest . && kubectl delete statefulset api && kubectl apply -f k8s`
+`eval $(minikube docker-env) && docker build --platform=linux/amd64 -t registry.digitalocean.com/wdc-registry/key-value-app:1 .`
 
 ## Deployment Process
 
 1. increase replicas and apply
 2. increase nodes and apply
 3. do a get request on all keys after new version of pods all up
-4. increase previous_nodes and apply
-5. done
+4. done
 
 ## Stuff
 
-CONFIG_VERSION=1 FILE_PATH_PREFIX=./data/1 NODES=1 PREVIOUS_NODES=1 HOSTNAME=api-primary-0 LOCAL_HOSTNAME=localhost:8080 PORT=8080 IS_LOCAL=true RABBIT_MQ_HOST=localhost RABBIT_MQ_PASSWORD=nuq8W2xD7Xm3lawk MODE=primary air
+CONFIG_VERSION=1 FILE_PATH_PREFIX=./data/1 NODES=1 HOSTNAME=api-primary-0 LOCAL_HOSTNAME=localhost:8080 PORT=8080 IS_LOCAL=true RABBIT_MQ_HOST=localhost RABBIT_MQ_PASSWORD=nuq8W2xD7Xm3lawk MODE=primary air

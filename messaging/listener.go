@@ -4,7 +4,7 @@ import (
 	"log"
 )
 
-func InitializeEventListener(handleEvent func(eventName string)) {
+func InitializeEventListener(handleEvent func(event string)) {
 
 	if rabbitConn == nil {
 		log.Fatal("RabbitMQ connection is not initialized")
@@ -26,7 +26,7 @@ func InitializeEventListener(handleEvent func(eventName string)) {
 
 	// Read messages from the channel
 	for msg := range msgs {
-		eventName := string(msg.Body)
-		handleEvent(eventName)
+		event := string(msg.Body)
+		handleEvent(event)
 	}
 }

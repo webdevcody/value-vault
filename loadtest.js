@@ -3,8 +3,8 @@ import { check, sleep } from "k6";
 
 export const options = {
   stages: [
-    { target: 200, duration: "20s" },
-    { target: 200, duration: "20s" },
+    { target: 500, duration: "20s" },
+    { target: 500, duration: "20s" },
   ],
   noConnectionReuse: true,
   dns: {
