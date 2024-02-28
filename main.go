@@ -63,15 +63,12 @@ func main() {
 	idleConnsClosed := make(chan struct{})
 	go func() {
 		sigint := make(chan os.Signal, 1)
-
-		// interrupt signal sent from terminal
 		signal.Notify(sigint, os.Interrupt)
-		// sigterm signal sent from kubernetes
 		signal.Notify(sigint, syscall.SIGTERM)
-
 		<-sigint
 
-		// sleep
+		// important, we need this sleep to wait for the k8s iptables to update before it
+		// starts to tear this pod down...
 		time.Sleep(10 * time.Second)
 
 		// We received an interrupt signal, shut down.
@@ -87,19 +84,12 @@ func main() {
 		messaging.InitializeEventListener(handleEvent)
 	}()
 
-	// probe.Create()
-	messaging.Initialize()
-
 	if err := server.ListenAndServe(); err != http.ErrServerClosed {
-		// Error starting or closing listener:
 		log.Printf("HTTP server ListenAndServe: %v", err)
 	}
 
-	log.Printf("waiting for connections to close\n")
+	log.Printf("waiting for connections to close!\n")
 
 	<-idleConnsClosed
 
-	// log.Printf("removing file\n")
-
-	// probe.Remove()
 }

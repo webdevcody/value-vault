@@ -19,7 +19,7 @@ spec:
     matchLabels:
       app: api-primary
   serviceName: "api-primary"
-  replicas: 4
+  replicas: 2
   template:
     metadata:
       labels:
@@ -28,7 +28,8 @@ spec:
     spec:
       containers:
         - name: api-primary
-          image: "registry.digitalocean.com/wdc-registry/key-value-app:6"
+          image: "registry.digitalocean.com/wdc-registry/key-value-app:14"
+          # 11 broken, 10 fixed
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
@@ -46,9 +47,11 @@ spec:
             failureThreshold: 3
           env:
             - name: NODES
-              value: "4"
+              value: "2"
             - name: FILE_PATH_PREFIX
               value: "/data"
+            - name: TESTING
+              value: "abcdehdjgf"
             - name: MODE
               value: primary
             - name: RABBIT_MQ_HOST

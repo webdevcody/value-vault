@@ -19,7 +19,7 @@ GOOD LUCK, TODO UPDATE ME
 - must have a DO cluster setup
 - must have a DO registry created called `wdc-registry`
 
-# Deploy
+# Deploy to DO
 
 1. build container `docker build --platform=linux/amd64 -t registry.digitalocean.com/wdc-registry/key-value-app .`
 2. push container `docker push registry.digitalocean.com/wdc-registry/key-value-app`
@@ -28,7 +28,7 @@ GOOD LUCK, TODO UPDATE ME
 ## Running Minikube
 
 1. eval $(minikube docker-env)
-1. build container `docker build --platform=linux/amd64 -t registry.digitalocean.com/wdc-registry/key-value-app .`
+1. build container `docker build -t registry.digitalocean.com/wdc-registry/key-value-app .`
 1. apply changes `kubectl apply -f k8s`
 1. setup tunnel `minikube tunnel`
 1. access localhost:80 for your service
@@ -65,7 +65,7 @@ helm install my-rabbitmq bitnami/rabbitmq
 
 ## Build Container
 
-`eval $(minikube docker-env) && docker build --platform=linux/amd64 -t registry.digitalocean.com/wdc-registry/key-value-app:1 .`
+`eval $(minikube docker-env) && docker build -t registry.digitalocean.com/wdc-registry/key-value-app:1 .`
 
 ## Deployment Process
 

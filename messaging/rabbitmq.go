@@ -77,13 +77,13 @@ func Initialize() {
 	rabbitQueue, queueErr = rabbitCh.QueueDeclare(
 		hostname, // queue name (empty to let RabbitMQ generate a unique name)
 		false,    // durable
-		true,     // delete when unused
+		false,    // delete when unused
 		false,    // exclusive
 		false,    // no-wait
 		nil,      // arguments
 	)
 	if queueErr != nil {
-		log.Fatalf("Failed to declare a queue: %v", err)
+		log.Fatalf("Failed to declare a queue called %s: %v", hostname, queueErr)
 	}
 
 	// Bind the queue to the exchange
