@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"key-value-app/hash"
+	"key-value-app/locking"
 	"key-value-app/messaging"
 	"key-value-app/persistence"
 	"key-value-app/proxy"
@@ -14,6 +15,7 @@ import (
 )
 
 func StoreKeyValue(key string, value []byte, traceId string) error {
+
 	hostname := os.Getenv("HOSTNAME")
 
 	if traceId == "" {
@@ -49,6 +51,9 @@ func StoreKeyHandler(w http.ResponseWriter, r *http.Request) {
 	context := GetRequestContext(r)
 
 	key := r.PathValue("key")
+
+	locking.Lock(key)
+	defer locking.Unlock(key)
 
 	Log(context, fmt.Sprintf("POST /keys/%s", key))
 

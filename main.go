@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"key-value-app/handlers"
 	"key-value-app/hash"
+	"key-value-app/locking"
 	"key-value-app/messaging"
 	"key-value-app/persistence"
 	"log"
@@ -21,6 +22,9 @@ func handleEvent(message string) {
 	key := parts[0]
 	value := parts[1]
 
+	locking.Lock(key)
+	defer locking.Unlock(key)
+
 	hostname := os.Getenv("HOSTNAME")
 	node := hash.GetCurrentRingNode(key)
 	nodeHostname := strings.Split(node.LogicalHostname, ".")[0]
@@ -34,7 +38,6 @@ func handleEvent(message string) {
 	if err := persistence.WriteJsonToDisk(key, []byte(value)); err != nil {
 		log.Fatalf("could not write to disk")
 	}
-
 }
 
 func main() {
@@ -46,7 +49,6 @@ func main() {
 
 	mux.HandleFunc("GET /keys/{key}", handlers.GetKeys)
 	mux.HandleFunc("POST /keys/{key}", handlers.StoreKeyHandler)
-	mux.HandleFunc("DELETE /keys/{key}", handlers.DeleteKey)
 	mux.HandleFunc("GET /status", handlers.StatusHandler)
 
 	port := os.Getenv("PORT")

@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"key-value-app/hash"
+	"key-value-app/locking"
 	"key-value-app/persistence"
 	"key-value-app/proxy"
 	"key-value-app/util"
@@ -12,11 +13,15 @@ import (
 )
 
 func GetKeys(w http.ResponseWriter, r *http.Request) {
+
 	context := GetRequestContext(r)
 
 	hostname := os.Getenv("HOSTNAME")
 
 	key := r.PathValue("key")
+
+	locking.RLock(key)
+	defer locking.RUnlock(key)
 
 	Log(context, fmt.Sprintf("GET /keys/%s", key))
 

@@ -20,7 +20,7 @@ spec:
     matchLabels:
       app: api-secondary
   serviceName: "api-secondary"
-  replicas: 2
+  replicas: 4
   template:
     metadata:
       labels:
@@ -29,7 +29,7 @@ spec:
     spec:
       containers:
         - name: api-secondary
-          image: "registry.digitalocean.com/wdc-registry/key-value-app:14"
+          image: "registry.digitalocean.com/wdc-registry/key-value-app:17"
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
@@ -47,7 +47,7 @@ spec:
             failureThreshold: 3
           env:
             - name: NODES
-              value: "2"
+              value: "4"
             - name: MODE
               value: secondary
             - name: FILE_PATH_PREFIX

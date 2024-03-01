@@ -3,8 +3,8 @@ import { check, sleep } from "k6";
 
 export const options = {
   stages: [
-    { target: 20, duration: "10s" },
-    { target: 20, duration: "10s" },
+    { target: 1, duration: "10s" },
+    { target: 1, duration: "10s" },
   ],
   noConnectionReuse: false,
   dns: {
@@ -73,8 +73,8 @@ export default function () {
   const randomTrace = randomString(32);
   const key = randomString(6);
   writeKey(key, randomValue, randomTrace);
-  sleep(5);
   readValue(key, randomValue, randomTrace);
+  // sleep(1);
 }
 
 // export default function () {
