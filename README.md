@@ -76,4 +76,4 @@ helm install my-rabbitmq bitnami/rabbitmq
 
 ## Stuff
 
-CONFIG_VERSION=1 FILE_PATH_PREFIX=./data/1 NODES=1 HOSTNAME=api-primary-0 LOCAL_HOSTNAME=localhost:8080 PORT=8080 IS_LOCAL=true RABBIT_MQ_HOST=localhost RABBIT_MQ_PASSWORD=nuq8W2xD7Xm3lawk MODE=primary air
+CONFIG_VERSION=1 FILE_PATH_PREFIX=./data NODES=1 HOSTNAME=api-primary-0 LOCAL_HOSTNAME=localhost:8080 PORT=8080 IS_LOCAL=true RABBIT_MQ_HOST=localhost RABBIT_MQ_PASSWORD=nuq8W2xD7Xm3lawk MODE=primary air

@@ -4,7 +4,34 @@ import (
 	"log"
 )
 
-func InitializeEventListener(handleEvent func(event string)) {
+func InitializeRedistributedEventListener() {
+
+	if rabbitConn == nil {
+		log.Fatal("RabbitMQ connection is not initialized")
+	}
+
+	// Consume messages from the queue
+	msgs, err := rabbitCh.Consume(
+		getRedistributeQueueName(), // queue name
+		"",                         // consumer
+		true,                       // auto-ack
+		false,                      // exclusive
+		false,                      // no-local
+		false,                      // no-wait
+		nil,                        // arguments
+	)
+	if err != nil {
+		log.Fatalf("Failed to register a consumer: %v", err)
+	}
+
+	// Read messages from the channel
+	for msg := range msgs {
+		event := string(msg.Body)
+		handleRedistributeEvent(event)
+	}
+}
+
+func InitializeReplicationEventListener() {
 
 	if rabbitConn == nil {
 		log.Fatal("RabbitMQ connection is not initialized")
@@ -27,6 +54,6 @@ func InitializeEventListener(handleEvent func(event string)) {
 	// Read messages from the channel
 	for msg := range msgs {
 		event := string(msg.Body)
-		handleEvent(event)
+		handleReplicationEvent(event)
 	}
 }

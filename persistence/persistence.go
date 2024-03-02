@@ -3,6 +3,7 @@ package persistence
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 var directoryPath string
@@ -78,4 +79,20 @@ func Initialize() error {
 
 	// Directory already exists or created successfully
 	return nil
+}
+
+func GetAllKeys() ([]string, error) {
+	var keys []string
+
+	files, err := os.ReadDir(directoryPath)
+	if err != nil {
+		return nil, fmt.Errorf("error reading directory: %v", err)
+	}
+
+	for _, file := range files {
+		name := strings.Split(file.Name(), ".")[0]
+		keys = append(keys, name)
+	}
+
+	return keys, nil
 }

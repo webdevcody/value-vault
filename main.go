@@ -4,41 +4,15 @@ import (
 	"context"
 	"fmt"
 	"key-value-app/handlers"
-	"key-value-app/hash"
-	"key-value-app/locking"
 	"key-value-app/messaging"
 	"key-value-app/persistence"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 )
-
-func handleEvent(message string) {
-	parts := strings.Split(message, "|YOLO|")
-	key := parts[0]
-	value := parts[1]
-
-	locking.Lock(key)
-	defer locking.Unlock(key)
-
-	hostname := os.Getenv("HOSTNAME")
-	node := hash.GetCurrentRingNode(key)
-	nodeHostname := strings.Split(node.LogicalHostname, ".")[0]
-
-	isDataOnThisNode := nodeHostname == hostname
-
-	if !isDataOnThisNode {
-		return
-	}
-
-	if err := persistence.WriteJsonToDisk(key, []byte(value)); err != nil {
-		log.Fatalf("could not write to disk")
-	}
-}
 
 func main() {
 	persistence.Initialize()
@@ -82,8 +56,13 @@ func main() {
 	}()
 
 	go func() {
-		fmt.Println("Starting RabbitMQ listener")
-		messaging.InitializeEventListener(handleEvent)
+		fmt.Println("Starting Replication listener")
+		messaging.InitializeReplicationEventListener()
+	}()
+
+	go func() {
+		fmt.Println("Listening to Redistribute Listener")
+		messaging.InitializeRedistributedEventListener()
 	}()
 
 	if err := server.ListenAndServe(); err != http.ErrServerClosed {
