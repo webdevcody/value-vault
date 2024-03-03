@@ -3,11 +3,14 @@ package messaging
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/streadway/amqp"
 )
 
 func PublishEvent(event string, value string) error {
+
+	mode := os.Getenv("MODE")
 
 	// Publish the event message to the topic exchange
 	err := rabbitCh.Publish(
@@ -17,7 +20,7 @@ func PublishEvent(event string, value string) error {
 		false,    // immediate
 		amqp.Publishing{
 			ContentType: "text/plain",
-			Body:        []byte(fmt.Sprintf("%s|YOLO|%s", event, value)),
+			Body:        []byte(fmt.Sprintf("%s|YOLO|%s|YOLO|%s", mode, event, value)),
 		},
 	)
 	if err != nil {

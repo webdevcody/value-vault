@@ -35,8 +35,15 @@ func handleReplicationEvent(message string) {
 	log.Printf("Handling replication event: %s", message)
 
 	parts := strings.Split(message, "|YOLO|")
-	key := parts[0]
-	value := parts[1]
+
+	fromMode := parts[0]
+	key := parts[1]
+	value := parts[2]
+
+	// we should skip replication events from the same mode (primary / secondary)
+	if fromMode == os.Getenv("MODE") {
+		return
+	}
 
 	locking.Lock(key)
 	defer locking.Unlock(key)

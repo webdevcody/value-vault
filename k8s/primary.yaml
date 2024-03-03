@@ -19,7 +19,7 @@ spec:
     matchLabels:
       app: api-primary
   serviceName: "api-primary"
-  replicas: 2
+  replicas: 1
   template:
     metadata:
       labels:
@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
         - name: api-primary
-          image: "registry.digitalocean.com/wdc-registry/key-value-app:17"
+          image: "registry.digitalocean.com/wdc-registry/key-value-app:20"
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
@@ -46,7 +46,7 @@ spec:
             failureThreshold: 3
           env:
             - name: NODES
-              value: "2"
+              value: "1"
             - name: FILE_PATH_PREFIX
               value: "/data"
             - name: TESTING
